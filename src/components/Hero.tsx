@@ -19,7 +19,12 @@ const Hero = () => {
       <div className="container relative z-10 px-6 py-20">
         <div className="max-w-4xl mx-auto text-center">
           {/* Badge */}
-        
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-secondary mb-8 animate-fade-up">
+            <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
+            <span className="text-sm font-medium text-secondary-foreground">
+              For creators under 50k followers
+            </span>
+          </div>
           
           {/* Headline */}
           <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight text-foreground mb-6 animate-fade-up stagger-1">
