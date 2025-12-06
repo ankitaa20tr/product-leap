@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import HorizonLogo from "@/components/HorizonLogo";
 
 const Navbar = () => {
   const [isScrolled, setIsScrolled] = useState(false);
@@ -30,8 +31,9 @@ const Navbar = () => {
     >
       <div className="container px-6">
         <div className="flex items-center justify-between">
-          <a href="/" className="text-xl font-bold text-foreground">
-            Horizon
+          <a href="/" className="flex items-center gap-2 text-xl font-bold text-foreground">
+            <HorizonLogo className="w-9 h-9" />
+            <span>Horizon</span>
           </a>
           
           <Button 
