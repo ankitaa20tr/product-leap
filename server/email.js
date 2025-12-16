@@ -1,38 +1,32 @@
-import nodemailer from 'nodemailer';
+import { Resend } from 'resend';
 
-// Create transporter using environment variables
-const createTransporter = () => {
-  // Check if email credentials are provided
-  if (!process.env.EMAIL_HOST || !process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
-    console.warn('Email credentials not configured. Email notifications will be disabled.');
+// Initialize Resend client using API key
+const createResendClient = () => {
+  if (!process.env.RESEND_API_KEY) {
+    console.warn('RESEND_API_KEY not configured. Email notifications will be disabled.');
     return null;
   }
 
-  return nodemailer.createTransport({
-    host: process.env.EMAIL_HOST,
-    port: parseInt(process.env.EMAIL_PORT || '587'),
-    secure: process.env.EMAIL_SECURE === 'true', // true for 465, false for other ports
-    auth: {
-      user: process.env.EMAIL_USER,
-      pass: process.env.EMAIL_PASS,
-    },
-  });
+  return new Resend(process.env.RESEND_API_KEY);
 };
 
 export const sendApplicationNotification = async (application) => {
-  const transporter = createTransporter();
-  
-  if (!transporter) {
-    console.log('Email transporter not available. Skipping email notification.');
+  const resend = createResendClient();
+
+  if (!resend) {
+    console.log('Resend client not available. Skipping email notification.');
     console.log('Application details:', application);
     return;
   }
 
   const recipientEmail = process.env.NOTIFICATION_EMAIL || process.env.EMAIL_USER;
-  
+
   if (!recipientEmail) {
     console.warn('NOTIFICATION_EMAIL not set. Using EMAIL_USER as fallback.');
   }
+
+  // NOTE: For production you should set FROM_EMAIL to a verified domain in Resend.
+  const fromEmail = process.env.FROM_EMAIL || 'onboarding@resend.dev';
 
   // Helper function to escape HTML and prevent XSS
   const escapeHtml = (text) => {
@@ -68,11 +62,8 @@ export const sendApplicationNotification = async (application) => {
 
   const instagramUrl = formatInstagramUrl(application.instagram);
 
-  const mailOptions = {
-    from: `"Application System" <${process.env.EMAIL_USER}>`,
-    to: recipientEmail,
-    subject: `New Application Received: ${escapeHtml(application.name)}`,
-    html: `
+  const subject = `New Application Received: ${escapeHtml(application.name)}`;
+  const html = `
       <h2>New Application Received</h2>
       <p>A new application has been submitted through your website.</p>
       
@@ -92,8 +83,8 @@ export const sendApplicationNotification = async (application) => {
       <p style="color: #666; font-size: 12px;">
         This is an automated notification from your application system.
       </p>
-    `,
-    text: `
+    `;
+  const text = `
 New Application Received
 
 A new application has been submitted through your website.
@@ -110,13 +101,19 @@ ${application.reason}
 
 ---
 This is an automated notification from your application system.
-    `.trim(),
-  };
+  `.trim();
 
   try {
-    const info = await transporter.sendMail(mailOptions);
-    console.log('Email notification sent successfully:', info.messageId);
-    return { success: true, messageId: info.messageId };
+    const result = await resend.emails.send({
+      from: `"Application System" <${fromEmail}>`,
+      to: recipientEmail,
+      subject,
+      html,
+      text,
+    });
+
+    console.log('Email notification sent successfully via Resend:', result?.id || result);
+    return { success: true, id: result?.id };
   } catch (error) {
     console.error('Error sending email notification:', error);
     return { success: false, error: error.message };
