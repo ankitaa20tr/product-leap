@@ -28,17 +28,28 @@ const ApplicationForm = () => {
       // Use environment variable if set, otherwise use proxy in dev or default URL
       const apiUrl = import.meta.env.VITE_API_URL || (import.meta.env.DEV ? '' : 'http://localhost:3001');
       const response = await fetch(`${apiUrl}/api/applications`, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify(formData),
       });
 
-      const data = await response.json();
+      // Some error responses (like proxy / network errors) may have an empty body,
+      // which would cause `response.json()` to throw "Unexpected end of JSON input".
+      const text = await response.text();
+      let data: any = {};
+
+      if (text) {
+        try {
+          data = JSON.parse(text);
+        } catch (parseError) {
+          console.error("Failed to parse response JSON:", parseError, "Raw response text:", text);
+        }
+      }
 
       if (!response.ok) {
-        throw new Error(data.error || 'Failed to submit application');
+        throw new Error(data?.error || "Failed to submit application. Please try again.");
       }
 
       setIsSubmitting(false);
@@ -48,11 +59,14 @@ const ApplicationForm = () => {
         description: "We'll review your application and get back to you within 48 hours.",
       });
     } catch (error) {
-      console.error('Error submitting application:', error);
+      console.error("Error submitting application:", error);
       setIsSubmitting(false);
       toast({
         title: "Submission failed",
-        description: error instanceof Error ? error.message : "Failed to submit application. Please try again.",
+        description:
+          error instanceof Error
+            ? error.message
+            : "Failed to submit application. Please try again.",
         variant: "destructive",
       });
     }
